@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import StatusControls from "@/components/experiments/StatusControls";
+import ExperimentLockNotice from "@/components/experiments/ExperimentLockNotice";
 
 interface Params {
   params: Promise<{
@@ -77,6 +79,9 @@ export default async function ExperimentDetailPage({ params }: Params) {
         </div>
       </div>
 
+      {/* Lock Notice for non-DRAFT experiments */}
+      <ExperimentLockNotice status={experiment.status} />
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
@@ -144,6 +149,9 @@ export default async function ExperimentDetailPage({ params }: Params) {
 
         {/* Sidebar */}
         <div className="space-y-6">
+          {/* Status Controls */}
+          <StatusControls experimentId={experiment.id} currentStatus={experiment.status} />
+
           {/* Details */}
           <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
             <h2 className="text-lg font-semibold text-gray-100 mb-4">Details</h2>
