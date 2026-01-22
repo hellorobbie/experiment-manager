@@ -1,0 +1,81 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// User management for auth
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  password  String   // hashed with bcrypt
+  createdAt DateTime @default(now())
+
+  experiments Experiment[]
+  auditLogs   AuditLog[]
+}
+
+// Core experiment entity
+model Experiment {
+  id          String           @id @default(cuid())
+  name        String
+  description String?
+  hypothesis  String?          // Why we're running this test
+  owner       User             @relation(fields: [ownerId], references: [id])
+  ownerId     String
+
+  status        String           @default("DRAFT") // DRAFT, LIVE, PAUSED, ENDED
+  primaryKPI    String?          // e.g., "conversion_rate", "revenue_per_user"
+  secondaryKPIs String           @default("[]")   // JSON array of KPI strings
+
+  // Targeting rules stored as JSON
+  // Example: { "device": ["ios", "android"], "country": ["US", "CA"], "channel": ["organic"] }
+  targeting     String           @default("{}")
+
+  // Timestamps for state transitions
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  goLiveAt    DateTime?
+  pausedAt    DateTime?
+  endedAt     DateTime?
+
+  variants    Variant[]
+  auditLogs   AuditLog[]
+}
+
+// Experiment variants with traffic allocation
+model Variant {
+  id                String     @id @default(cuid())
+  name              String     // e.g., "Control", "Treatment A"
+  description       String?
+  trafficPercentage Int        // 0-100
+  isControl         Boolean    @default(false)
+
+  experiment        Experiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  experimentId      String
+
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+}
+
+// Audit trail for all changes
+model AuditLog {
+  id           String     @id @default(cuid())
+  action       String     // e.g., "created", "updated", "went_live", "paused"
+  changes      String?    @default("{}")  // JSON diff of what changed
+
+  user         User       @relation(fields: [userId], references: [id])
+  userId       String
+
+  experiment   Experiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  experimentId String
+
+  createdAt    DateTime   @default(now())
+}
