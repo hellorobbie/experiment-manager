@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import StatusControls from "@/components/experiments/StatusControls";
 import ExperimentLockNotice from "@/components/experiments/ExperimentLockNotice";
+import AuditLogTimeline from "@/components/experiments/AuditLogTimeline";
 
 interface Params {
   params: Promise<{
@@ -32,9 +33,8 @@ export default async function ExperimentDetailPage({ params }: Params) {
           },
         },
         orderBy: {
-          createdAt: "desc",
+          createdAt: "asc",
         },
-        take: 10,
       },
     },
   });
@@ -124,27 +124,15 @@ export default async function ExperimentDetailPage({ params }: Params) {
           </div>
 
           {/* Activity Log */}
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-gray-100 mb-4">Activity Log</h2>
-            <div className="space-y-3">
-              {experiment.auditLogs.map((log) => (
-                <div
-                  key={log.id}
-                  className="flex items-start gap-3 text-sm pb-3 border-b border-gray-800 last:border-0 last:pb-0"
-                >
-                  <div className="flex-1">
-                    <p className="text-gray-200">
-                      <span className="font-medium">{log.user.name || log.user.email}</span>{" "}
-                      <span className="text-gray-400">{log.action}</span> the experiment
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {new Date(log.createdAt).toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <AuditLogTimeline
+            logs={experiment.auditLogs.map((log) => ({
+              id: log.id,
+              action: log.action,
+              changes: log.changes,
+              createdAt: log.createdAt.toISOString(),
+              user: log.user,
+            }))}
+          />
         </div>
 
         {/* Sidebar */}

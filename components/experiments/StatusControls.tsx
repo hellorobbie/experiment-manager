@@ -105,6 +105,7 @@ export default function StatusControls({
 
       // Success - refresh the page to show updated status
       router.refresh();
+      setIsLoading(false);
     } catch (err) {
       setError("An unexpected error occurred");
       setIsLoading(false);

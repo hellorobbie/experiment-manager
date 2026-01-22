@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { ExperimentStatus } from "@/lib/types";
+import ExperimentFilters from "@/components/experiments/ExperimentFilters";
+import { Prisma } from "@prisma/client";
 
 function StatusBadge({ status }: { status: ExperimentStatus }) {
   const styles = {
@@ -19,8 +21,52 @@ function StatusBadge({ status }: { status: ExperimentStatus }) {
   );
 }
 
-export default async function ExperimentsPage() {
+interface ExperimentsPageProps {
+  searchParams: Promise<{
+    status?: string;
+    search?: string;
+    sort?: string;
+  }>;
+}
+
+export default async function ExperimentsPage({
+  searchParams,
+}: ExperimentsPageProps) {
+  const params = await searchParams;
+  const { status, search, sort = "updated-desc" } = params;
+
+  // Build filter conditions
+  const where: Prisma.ExperimentWhereInput = {};
+
+  if (status && status !== "all") {
+    where.status = status as ExperimentStatus;
+  }
+
+  if (search) {
+    where.OR = [
+      { name: { contains: search } },
+      { description: { contains: search } },
+    ];
+  }
+
+  // Build orderBy
+  let orderBy: Prisma.ExperimentOrderByWithRelationInput = {
+    updatedAt: "desc",
+  };
+
+  const [sortField, sortOrder] = sort.split("-");
+  if (sortField === "updated") {
+    orderBy = { updatedAt: sortOrder as "asc" | "desc" };
+  } else if (sortField === "created") {
+    orderBy = { createdAt: sortOrder as "asc" | "desc" };
+  } else if (sortField === "name") {
+    orderBy = { name: sortOrder as "asc" | "desc" };
+  } else if (sortField === "status") {
+    orderBy = { status: sortOrder as "asc" | "desc" };
+  }
+
   const experiments = await prisma.experiment.findMany({
+    where,
     include: {
       owner: {
         select: {
@@ -35,9 +81,7 @@ export default async function ExperimentsPage() {
         },
       },
     },
-    orderBy: {
-      updatedAt: "desc",
-    },
+    orderBy,
   });
 
   return (
@@ -52,24 +96,34 @@ export default async function ExperimentsPage() {
         </Link>
       </div>
 
+      <ExperimentFilters />
+
       {experiments.length === 0 ? (
         <div className="bg-gray-900 border border-gray-800 rounded-lg shadow p-12 text-center">
           <h3 className="text-lg font-medium text-gray-100 mb-2">
-            No experiments yet
+            {search || status ? "No experiments match your filters" : "No experiments yet"}
           </h3>
           <p className="text-gray-400 mb-6">
-            Get started by creating your first experiment
+            {search || status
+              ? "Try adjusting your search or filters"
+              : "Get started by creating your first experiment"}
           </p>
-          <Link
-            href="/experiments/new"
-            className="inline-flex px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium transition-colors"
-          >
-            Create Experiment
-          </Link>
+          {!search && !status && (
+            <Link
+              href="/experiments/new"
+              className="inline-flex px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium transition-colors"
+            >
+              Create Experiment
+            </Link>
+          )}
         </div>
       ) : (
-        <div className="bg-gray-900 border border-gray-800 shadow rounded-lg overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-800">
+        <>
+          <div className="mb-3 text-sm text-gray-400">
+            Showing {experiments.length} experiment{experiments.length !== 1 ? "s" : ""}
+          </div>
+          <div className="bg-gray-900 border border-gray-800 shadow rounded-lg overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-800">
             <thead className="bg-gray-800/50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
@@ -122,6 +176,7 @@ export default async function ExperimentsPage() {
             </tbody>
           </table>
         </div>
+        </>
       )}
     </div>
   );

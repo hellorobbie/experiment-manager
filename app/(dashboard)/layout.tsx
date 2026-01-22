@@ -2,6 +2,17 @@ import { redirect } from "next/navigation";
 import { auth, signOut } from "@/lib/auth";
 import Link from "next/link";
 
+function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-300 hover:text-gray-100 border-b-2 border-transparent hover:border-gray-600 transition-colors"
+    >
+      {children}
+    </Link>
+  );
+}
+
 async function DashboardNav({ userName }: { userName: string | null }) {
   return (
     <nav className="bg-gray-900 border-b border-gray-800">
@@ -9,18 +20,14 @@ async function DashboardNav({ userName }: { userName: string | null }) {
         <div className="flex justify-between h-16">
           <div className="flex">
             <Link
-              href="/experiments"
+              href="/"
               className="flex items-center px-2 text-xl font-bold text-gray-100"
             >
               Experiment Manager
             </Link>
             <div className="ml-6 flex space-x-8">
-              <Link
-                href="/experiments"
-                className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-100 border-b-2 border-blue-500"
-              >
-                Experiments
-              </Link>
+              <NavLink href="/">Dashboard</NavLink>
+              <NavLink href="/experiments">Experiments</NavLink>
             </div>
           </div>
           <div className="flex items-center">

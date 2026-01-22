@@ -89,9 +89,15 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       include: { variants: true },
     });
 
-    // Create audit log
+    // Create audit log with specific action
+    const actionMap: Record<string, string> = {
+      LIVE: currentStatus === "PAUSED" ? "resumed" : "went_live",
+      PAUSED: "paused",
+      ENDED: "ended",
+    };
+
     await createAuditLog({
-      action: "updated",
+      action: actionMap[newStatus] || "updated",
       experimentId: id,
       userId: session.user.id,
       changes: {
