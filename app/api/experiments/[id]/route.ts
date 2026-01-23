@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { validateGoLive } from "@/lib/validations";
-import { createAuditLog } from "@/lib/audit";
+import { createAuditLog, AuditAction } from "@/lib/audit";
 
 interface Params {
   params: Promise<{
@@ -90,14 +90,14 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     });
 
     // Create audit log with specific action
-    const actionMap: Record<string, string> = {
+    const actionMap: Record<string, "went_live" | "resumed" | "paused" | "ended"> = {
       LIVE: currentStatus === "PAUSED" ? "resumed" : "went_live",
       PAUSED: "paused",
       ENDED: "ended",
     };
 
     await createAuditLog({
-      action: actionMap[newStatus] || "updated",
+      action: (actionMap[newStatus] || "updated") as AuditAction,
       experimentId: id,
       userId: session.user.id,
       changes: {
