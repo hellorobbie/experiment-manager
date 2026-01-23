@@ -50,22 +50,25 @@ export default async function ExperimentsPage({
   }
 
   // Build orderBy
+  const [sortField, sortOrder] = sort.split("-");
   let orderBy: Prisma.ExperimentOrderByWithRelationInput = {
     updatedAt: "desc",
   };
 
-  const [sortField, sortOrder] = sort.split("-");
-  if (sortField === "updated") {
-    orderBy = { updatedAt: sortOrder as "asc" | "desc" };
-  } else if (sortField === "created") {
-    orderBy = { createdAt: sortOrder as "asc" | "desc" };
-  } else if (sortField === "name") {
-    orderBy = { name: sortOrder as "asc" | "desc" };
-  } else if (sortField === "status") {
-    orderBy = { status: sortOrder as "asc" | "desc" };
+  // For status sorting, we'll sort in-memory with custom order
+  const isStatusSort = sortField === "status";
+
+  if (!isStatusSort) {
+    if (sortField === "updated") {
+      orderBy = { updatedAt: sortOrder as "asc" | "desc" };
+    } else if (sortField === "created") {
+      orderBy = { createdAt: sortOrder as "asc" | "desc" };
+    } else if (sortField === "name") {
+      orderBy = { name: sortOrder as "asc" | "desc" };
+    }
   }
 
-  const experiments = await prisma.experiment.findMany({
+  let experiments = await prisma.experiment.findMany({
     where,
     include: {
       owner: {
@@ -81,8 +84,29 @@ export default async function ExperimentsPage({
         },
       },
     },
-    orderBy,
+    orderBy: isStatusSort ? { createdAt: "desc" } : orderBy,
   });
+
+  // Apply custom status sorting if needed
+  if (isStatusSort) {
+    const statusOrder: Record<ExperimentStatus, number> = {
+      LIVE: 1,
+      DRAFT: 2,
+      PAUSED: 3,
+      ENDED: 4,
+    };
+
+    experiments = experiments.sort((a, b) => {
+      const orderA = statusOrder[a.status as ExperimentStatus];
+      const orderB = statusOrder[b.status as ExperimentStatus];
+
+      if (sortOrder === "asc") {
+        return orderA - orderB;
+      } else {
+        return orderB - orderA;
+      }
+    });
+  }
 
   return (
     <div>
