@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -48,6 +48,11 @@ model Experiment {
 
   variants    Variant[]
   auditLogs   AuditLog[]
+
+  @@index([status])
+  @@index([ownerId])
+  @@index([createdAt])
+  @@index([updatedAt])
 }
 
 // Experiment variants with traffic allocation
@@ -78,4 +83,8 @@ model AuditLog {
   experimentId String
 
   createdAt    DateTime   @default(now())
+
+  @@index([experimentId])
+  @@index([userId])
+  @@index([createdAt])
 }

@@ -1,0 +1,22 @@
+{
+  "name": "experiment-manager",
+  "description": "A/B testing experiment management platform",
+  "repository": "https://github.com/hellorobbie/experiment-manager",
+  "keywords": ["nextjs", "prisma", "postgresql", "experiments"],
+  "addons": [
+    {
+      "plan": "heroku-postgresql:essential-0"
+    }
+  ],
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    }
+  ],
+  "env": {
+    "AUTH_SECRET": {
+      "description": "Secret key for NextAuth.js authentication",
+      "generator": "secret"
+    }
+  }
+}

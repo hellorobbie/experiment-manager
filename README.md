@@ -15,7 +15,7 @@ This is a **control-plane application** for managing experiment configurations�
 
 - **Framework**: Next.js 16 (App Router)
 - **Language**: TypeScript
-- **Database**: SQLite with Prisma ORM
+- **Database**: PostgreSQL with Prisma ORM
 - **Auth**: NextAuth.js (credentials provider)
 - **Styling**: Tailwind CSS
 - **Validation**: Zod
@@ -26,6 +26,9 @@ This is a **control-plane application** for managing experiment configurations�
 
 - Node.js 18+ (tested with Node 22)
 - npm or similar package manager
+- PostgreSQL 14+ installed and running
+  - Download from [postgresql.org](https://www.postgresql.org/download/)
+  - Or use Docker: `docker run --name postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres`
 
 ### Installation
 
@@ -36,20 +39,37 @@ cd experiment-manager
 npm install
 ```
 
-2. Set up the database:
+2. Set up PostgreSQL database:
 
 ```bash
-npm run db:push    # Create database schema
-npm run db:seed    # Seed with demo user and sample experiment
+# Using psql (SQL Shell)
+psql -U postgres
+CREATE DATABASE experiment_manager_dev;
+\q
 ```
 
-3. Start the development server:
+3. Configure environment variables:
+
+Copy [.env.example](.env.example) to `.env` and update with your PostgreSQL credentials:
+
+```env
+DATABASE_URL="postgresql://postgres:your_password@localhost:5432/experiment_manager_dev?schema=public"
+```
+
+4. Run database migrations and seed:
+
+```bash
+npm run db:migrate:dev    # Run migrations
+npm run db:seed           # Seed with demo user and sample experiment
+```
+
+5. Start the development server:
 
 ```bash
 npm run dev
 ```
 
-4. Open [http://localhost:3000](http://localhost:3000)
+6. Open [http://localhost:3000](http://localhost:3000)
 
 ### Demo Credentials
 
@@ -127,13 +147,28 @@ experiment-manager/
 - **Audit logging** - Track all changes to experiments
 - **Dark theme UI** - Professional dark gray color palette
 
+### ✅ Phase 2 & 3 - Status Management
+- **Status transitions** - DRAFT → LIVE → PAUSED → ENDED with validation
+- **Go-live validation** - Enforces traffic allocation, variant count, KPI selection, and targeting rules
+- **Status controls** - Action buttons for status transitions with validation error display
+- **Experiment lock notice** - Visual indicator when experiments are locked
+
+### ✅ Phase 4 - Advanced Features
+- **Filtering and search** - Filter experiments by status, search by name/description, sort options
+- **Audit log timeline** - Visual timeline with expandable change diffs
+- **Dashboard overview** - Stats cards, recent experiments, and activity feed
+
+### ✅ Phase 5 - Production Readiness
+- **PostgreSQL migration** - Full migration from SQLite to PostgreSQL
+- **Database indexes** - Performance optimization for queries
+- **Heroku deployment configuration** - Production-ready setup with Procfile and app.json
+
 ### 🚧 Planned Enhancements
-- Go-live validation and status transitions (DRAFT → LIVE → PAUSED → ENDED)
+- Export experiment configurations (JSON, CSV)
 - Edit restrictions on live experiments
-- Advanced filtering and search
-- Export experiment configurations
 - Real-time notifications
-- Enhanced audit log visualization
+- Enhanced error handling and UX improvements
+- Security hardening (CSRF, rate limiting)
 
 ## Go-Live Validation
 
@@ -146,35 +181,66 @@ Experiments cannot transition from DRAFT → LIVE unless:
 
 See [lib/validations.ts](lib/validations.ts) for implementation.
 
+## Deployment
+
+This application is configured for deployment to Heroku with PostgreSQL.
+
+For complete deployment instructions, see [DEPLOYMENT.md](DEPLOYMENT.md).
+
+Quick deployment:
+```bash
+# Create Heroku app with PostgreSQL
+heroku create your-app-name
+heroku addons:create heroku-postgresql:essential-0
+
+# Set environment variables
+heroku config:set AUTH_SECRET=$(openssl rand -base64 32)
+
+# Deploy
+git push heroku main
+
+# Run migrations and seed
+heroku run npx prisma migrate deploy
+heroku run npm run db:seed
+```
+
 ## API Routes
 
 ### Experiments
-- `GET /api/experiments` - List all experiments (implemented)
-- `POST /api/experiments` - Create new experiment (implemented)
+- `GET /api/experiments` - List all experiments
+- `POST /api/experiments` - Create new experiment
 - `GET /api/experiments/[id]` - Get experiment details (page route)
-- `PATCH /api/experiments/[id]` - Update experiment (planned)
+- `PATCH /api/experiments/[id]` - Update experiment status
 - `DELETE /api/experiments/[id]` - Delete experiment (planned)
 
 ## Database Scripts
 
 ```bash
-npm run db:push       # Push schema changes to database
-npm run db:seed       # Seed database with demo data
-npm run db:studio     # Open Prisma Studio GUI
+npm run db:migrate:dev    # Run migrations in development (creates migration files)
+npm run db:migrate        # Deploy migrations in production
+npm run db:seed           # Seed database with demo data
+npm run db:studio         # Open Prisma Studio GUI
 ```
 
 ## Development Notes
 
-### Why SQLite?
+### Why PostgreSQL?
 
-- Zero configuration required
-- Lightweight and fast for development
-- Easy to inspect with Prisma Studio (`npm run db:studio`)
-- Can be swapped for PostgreSQL in production environments
+- Production-ready database for both local and deployed environments
+- Native JSON support for complex data structures
+- Better performance at scale
+- Database parity between development and production
 
-### Why String instead of JSON type for targeting?
+### Database Migrations
 
-SQLite doesn't have native JSON support in Prisma, so targeting rules and secondary KPIs are stored as stringified JSON. The application handles parsing on read/write operations.
+This project uses Prisma Migrate for database schema management:
+- Migration files are stored in [prisma/migrations](prisma/migrations)
+- Run `npm run db:migrate:dev` after schema changes
+- Migrations are automatically applied on Heroku deployment via `heroku-postbuild`
+
+### Why String for JSON fields?
+
+Although PostgreSQL supports native JSON types, we're using String fields for `targeting`, `secondaryKPIs`, and `changes` to maintain compatibility with the initial SQLite setup and simplify data handling in the application layer.
 
 ### Why NextAuth credentials provider?
 
