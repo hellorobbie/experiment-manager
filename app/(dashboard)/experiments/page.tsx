@@ -160,7 +160,7 @@ export default async function ExperimentsPage({
                     </Link>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <StatusBadge status={experiment.status} />
+                    <StatusBadge status={experiment.status as ExperimentStatus} />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                     {experiment.owner.name || experiment.owner.email}
