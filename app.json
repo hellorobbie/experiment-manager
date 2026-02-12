@@ -17,6 +17,10 @@
     "AUTH_SECRET": {
       "description": "Secret key for NextAuth.js authentication",
       "generator": "secret"
+    },
+    "INTEGRATION_API_KEY": {
+      "description": "API key for service-to-service integrations (e.g., analytics dashboard)",
+      "generator": "secret"
     }
   }
 }
