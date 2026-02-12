@@ -105,6 +105,20 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       },
     });
 
+    // Trigger analytics dashboard data regeneration when an experiment goes LIVE
+    if (newStatus === "LIVE") {
+      const dashboardUrl = process.env.ANALYTICS_DASHBOARD_URL;
+      const dashboardToken = process.env.ANALYTICS_DASHBOARD_TOKEN;
+      if (dashboardUrl && dashboardToken) {
+        fetch(`${dashboardUrl}/api/admin/regenerate-data`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${dashboardToken}` },
+        }).catch((err) =>
+          console.error("Failed to trigger dashboard regeneration:", err)
+        );
+      }
+    }
+
     return NextResponse.json(updatedExperiment);
   } catch (error) {
     console.error("Error updating experiment:", error);
